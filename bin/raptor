@@ -83,6 +83,22 @@ if [ ! -d "$RAPTOR_DIR/core" ]; then
     exit 1
 fi
 
+# ── Vendored venv activation ─────────────────────────────────────────
+# Every `python3` invocation below (the --version fast path, doctor,
+# frida, and the main exec into Claude Code / raptor.py) must resolve
+# to the interpreter that actually has RAPTOR's dependencies installed
+# (semgrep, pydantic, mcp, ...) — that's `.venv` inside this repo, not
+# whatever `python3` the caller's PATH/pyenv/system happens to resolve
+# first. Prepending here, before the hardening PATH scrub below, means
+# the scrub still vets this entry (world-writable check etc.) like any
+# other. Silent no-op if the venv hasn't been created (e.g. running
+# straight from a fresh clone before `python3 -m venv .venv` + `pip
+# install -r requirements.txt`).
+if [ -d "$RAPTOR_DIR/.venv/bin" ]; then
+    PATH="$RAPTOR_DIR/.venv/bin:$PATH"
+    export PATH
+fi
+
 # ── Exec-boundary hardening ─────────────────────────────────────────
 # Runs BEFORE any binary is resolved via PATH; every exec below
 # inherits the result. RAPTOR_NO_LAUNCHER_HARDENING=1 skips the block.
